@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+
+import argparse
+
+parser = argparse.ArgumentParser(
+    description="Convert cin tables to inputplugin (UTF-16) for macOS"
+)
+parser.add_argument("--dry-run", action="store_true", help="Perform a dry run")
+args = parser.parse_args()
+
+m = {}
+
+
+def read(input):
+    with open(input, "r", encoding="UTF-8") as file:
+        match = input.endswith(".txt")
+        end = False
+        for line in file:
+            line = line.strip()
+            if not line or "#" in line:
+                continue
+            if "%chardef begin" in line:
+                match = True
+            elif "%chardef end" in line:
+                break
+            elif match:
+                try:
+                    k, v = line.split(None, 1)
+                    if "⎔" in v:
+                        continue
+                    if k in m:
+                        m[k] += "," + v
+                    else:
+                        m[k] = v
+                except:
+                    pass
+
+
+read("OpenVanilla/array-shortcode-20210725.cin")
+read("OpenVanilla/array-special-201509.cin")
+read("OpenVanilla/array30-OpenVanilla-big-v2023-1.0-20230211.cin")
+read("array30-phrase-20210725.txt")
+
+t1 = [
+    "METHOD: TABLE",
+    "ENCODE: TC",
+    "PROMPT: array30",
+    "DELIMITER: ,",
+    "VERSION: 1.0"
+    "VALIDINPUTKEY: 0123456789;/,.-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+    "BEGINCHARACTER",
+]
+t2 = "ENDCHARACTER"
+
+
+def write(output, encode):
+    with open(output, "w", encoding=encode) as file:
+        for t in t1:
+            file.write(f"{t}\n")
+        for k, v in m.items():
+            file.write(f"{k} {v}\n")
+        file.write(f"{t2}\n")
+
+
+write("macOS/array30.check", "UTF-8")  # human readable output for checking purpose
+
+if not args.dry_run:
+    write("macOS/array30.inputplugin", "UTF-16")
